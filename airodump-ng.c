@@ -6121,7 +6121,7 @@ int main( int argc, char *argv[] )
 
     struct pcap_pkthdr pkh;
 
-    time_t tt1, tt2, tt3, start_time;
+    time_t tt2, tt3, start_time;
 
     struct wif	       *wi[MAX_CARDS];
     struct rx_info     ri;
@@ -6130,6 +6130,8 @@ int main( int argc, char *argv[] )
     unsigned char      *h80211;
     char               *iface[MAX_CARDS];
 
+	struct timeval     fileWrittenTv;
+	
     struct timeval     tv0;
     struct timeval     tv1;
     struct timeval     tv2;
@@ -6256,7 +6258,7 @@ int main( int argc, char *argv[] )
     G.output_format_csv = 1;
     G.output_format_kismet_csv = 1;
     G.output_format_kismet_netxml = 1;
-    G.file_write_interval = 5; // Write file every 5 seconds by default
+    G.file_write_interval = 5000000; // Write file every 5 seconds by default
     G.maxsize_wps_seen  =  6;
     G.show_wps     = 0;
 #ifdef HAVE_PCRE
@@ -6989,7 +6991,7 @@ usage:
     fprintf( stderr, "\33[?25l\33[2J\n" );
 
     start_time = time( NULL );
-    tt1        = time( NULL );
+	gettimeofday( &fileWrittenTv, NULL );
     tt2        = time( NULL );
     tt3        = time( NULL );
     gettimeofday( &tv3, NULL );
@@ -7026,12 +7028,12 @@ usage:
             break;
         }
 
-        if( time( NULL ) - tt1 >= G.file_write_interval )
+        if( (1000000UL * (tv1.tv_sec - fileWrittenTv.tv_sec) + (tv1.tv_usec - fileWrittenTv.tv_usec)) >= G.file_write_interval )
         {
             /* update the text output files */
 
-            tt1 = time( NULL );
-            if (G. output_format_csv)  dump_write_csv();
+            gettimeofday( &fileWrittenTv, NULL );
+            if (G.output_format_csv)  dump_write_csv();
             if (G.output_format_kismet_csv) dump_write_kismet_csv();
             if (G.output_format_kismet_netxml) dump_write_kismet_netxml();
         }
@@ -7065,9 +7067,9 @@ usage:
             if( G.f_cap != NULL ) fflush( G.f_cap );
             if( G.f_ivs != NULL ) fflush( G.f_ivs );
         }
-
-        gettimeofday( &tv1, NULL );
-
+		
+		gettimeofday( &tv1, NULL );
+		
         cycle_time = 1000000UL * ( tv1.tv_sec  - tv3.tv_sec  )
                              + ( tv1.tv_usec - tv3.tv_usec );
 
