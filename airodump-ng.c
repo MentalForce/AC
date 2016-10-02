@@ -1223,7 +1223,7 @@ int remove_namac(unsigned char* mac)
     return( 0 );
 }
 
-int dump_add_packet( unsigned char *h80211, int caplen, struct rx_info *ri, int cardnum )
+int dump_add_packet( unsigned char *h80211, int caplen, struct rx_info *ri, int cardnum, int sockfd, struct sockaddr *dest_addr, int addrlen)
 {
     int i, n, seq, msd, dlen, offset, clen, o;
     unsigned z;
@@ -2608,7 +2608,7 @@ write_packet:
         pkh.tv_usec = ( tv.tv_usec & ~0x1ff ) + ri->ri_power + 64;
 
         n = sizeof( pkh );
-
+           
         if( fwrite( &pkh, 1, n, G.f_cap ) != (size_t) n )
         {
             perror( "fwrite(packet header) failed" );
@@ -2624,7 +2624,15 @@ write_packet:
             perror( "fwrite(packet data) failed" );
             return( 1 );
         }
-
+        fflush( stdout );
+        
+        char msg[5]="test!";
+        
+        if (sendto(sockfd, msg, strlen(msg), 0, dest_addr, addrlen)==-1)
+        {
+            perror( "sendto failed" );
+            return( 1 );
+        }
         fflush( stdout );
     }
 
@@ -7020,7 +7028,22 @@ usage:
 	return 1;
     }
 
-
+    struct sockaddr_in dest_addr;
+    int sockfd, addrlen = sizeof(struct sockaddr_in);
+    if ((sockfd=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+    {
+        perror("socket creation failed");
+        return 1;
+    }
+    memset((char *) &dest_addr, 0, sizeof(dest_addr));
+    dest_addr.sin_family = AF_INET;
+    dest_addr.sin_port = htons(4023);
+    if (inet_aton("192.168.56.1" , &dest_addr.sin_addr) == 0) 
+    {
+        perror("inet_aton() failed");
+        return 1;
+    }
+    
     while( 1 )
     {
         if( G.do_exit )
@@ -7314,16 +7337,18 @@ usage:
                     read_pkts++;
 
                     wi_read_failed = 0;
-                    dump_add_packet( h80211, caplen, &ri, i );
+                    dump_add_packet( h80211, caplen, &ri, i, sockfd, (struct sockaddr *) &dest_addr, addrlen );
                 }
             }
         }
         else if (G.s_file != NULL)
         {
-            dump_add_packet( h80211, caplen, &ri, i );
+            dump_add_packet( h80211, caplen, &ri, i, sockfd, (struct sockaddr *) &dest_addr, addrlen );
         }
     }
 
+    close(sockfd);
+    
     if(G.batt)
         free(G.batt);
 
