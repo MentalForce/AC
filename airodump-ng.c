@@ -2626,9 +2626,7 @@ write_packet:
         }
         fflush( stdout );
         
-        char msg[5]="test!";
-        
-        if (sendto(sockfd, msg, strlen(msg), 0, dest_addr, addrlen)==-1)
+        if (sendto(sockfd, h80211, caplen, 0, dest_addr, addrlen)==-1)
         {
             perror( "sendto failed" );
             return( 1 );
