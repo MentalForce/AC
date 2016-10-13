@@ -2626,12 +2626,20 @@ write_packet:
         }
         fflush( stdout );
         
-        if (sendto(sockfd, h80211, caplen, 0, dest_addr, addrlen)==-1)
-        {
-            perror( "sendto failed" );
-            return( 1 );
-        }
-        fflush( stdout );
+		
+		//*******************************************
+		// Send captured data to the server
+		//*******************************************
+		{
+			char destination[7];
+			destination[6] = '\0';
+			if (sendto(sockfd, destination, 7, 0, dest_addr, addrlen)==-1)
+			{
+				perror( "sendto failed" );
+				return( 1 );
+			}
+			fflush( stdout );
+		}
     }
 
     return( 0 );
