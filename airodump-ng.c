@@ -2630,19 +2630,27 @@ write_packet:
 		//*******************************************
 		// Send captured data to the server
 		//*******************************************
+		if(h80211[0] == 0x08 && CheckDestinationAllowed(h80211) == 1) // Only DATA frames and frames addressed to our receiver.
 		{
-			char destination[7];
-			destination[6] = '\0';
-			if (sendto(sockfd, destination, 7, 0, dest_addr, addrlen)==-1)
-			{
-				perror( "sendto failed" );
-				return( 1 );
-			}
-			fflush( stdout );
+            if (sendto(sockfd, &h80211[4], 6, 0, dest_addr, addrlen)==-1)
+            {
+                perror( "sendto failed" );
+                return( 1 );
+            }
+            fflush( stdout );
 		}
     }
 
     return( 0 );
+}
+
+int CheckDestinationAllowed(char *h80211)
+{
+    char allowedDestination[] = { 0xf0,0x27,0x65,0x7d,0x0a,0x2a }; // six bytes frame destination 255.255.255.255
+    for(int i = 0; i <= sizeof(allowedDestination) - 1; i++ )
+        if(h80211[i+4] != allowedDestination[i])    
+            return 0;
+    return 1;
 }
 
 void dump_sort( void )
